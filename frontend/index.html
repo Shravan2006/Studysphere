@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudySphere AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0D14; --panel:#12141d; --panel2:#181c2a; --line:#232838;
+  --text:#E8EAF2; --muted:#8B93A7; --dim:#5c6478;
+  --violet:#8B7CF6; --violet-soft:rgba(139,124,246,.14);
+  --amber:#F5B14C; --amber-soft:rgba(245,177,76,.12);
+  --green:#4ADE9C; --red:#F87171; --cyan:#5EC8E5;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font:15px/1.55 'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,textarea,select{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--violet)}
+h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;letter-spacing:-.02em}
+.mono{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.04em}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#252b3d;border-radius:8px}
+
+/* layout */
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:224px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 12px}
+.logo{display:flex;align-items:center;gap:10px;padding:6px 10px 20px}
+.logo-orb{width:30px;height:30px;border-radius:10px;background:conic-gradient(from 200deg,var(--violet),var(--cyan),var(--amber),var(--violet));box-shadow:0 0 18px rgba(139,124,246,.45)}
+.logo b{font-family:'Space Grotesk';font-size:16px}
+.logo span{display:block;font-size:10px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
+.nav-btn{display:flex;align-items:center;gap:11px;width:100%;padding:10px 12px;border-radius:10px;color:var(--muted);font-weight:500;margin-bottom:2px;transition:.15s}
+.nav-btn:hover{color:var(--text);background:var(--panel2)}
+.nav-btn.active{color:var(--text);background:var(--violet-soft);box-shadow:inset 2px 0 0 var(--violet)}
+.nav-btn svg{width:17px;height:17px;flex-shrink:0}
+.side-foot{margin-top:auto;padding:12px;border-top:1px solid var(--line)}
+.streak-pill{display:flex;align-items:center;gap:8px;background:var(--amber-soft);border:1px solid rgba(245,177,76,.25);border-radius:10px;padding:8px 12px}
+.streak-pill b{color:var(--amber);font-family:'Space Grotesk'}
+.main{flex:1;overflow-y:auto;position:relative}
+.view{display:none;max-width:980px;margin:0 auto;padding:30px 28px 60px;animation:rise .3s ease}
+.view.active{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.eyebrow{color:var(--violet);font-family:'JetBrains Mono';font-size:11px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:6px}
+.page-h{font-size:27px;margin-bottom:4px}
+.page-sub{color:var(--muted);margin-bottom:26px;font-size:14px}
+
+/* cards */
+.grid{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(4,1fr)}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.stat-label{color:var(--muted);font-size:12px;font-weight:500}
+.stat-num{font-family:'Space Grotesk';font-size:30px;font-weight:600;margin-top:4px}
+.stat-num small{font-size:14px;color:var(--muted);font-weight:400}
+.card h3{font-size:15px;margin-bottom:14px}
+.chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--muted);margin:0 6px 6px 0}
+.chip.weak{border-color:rgba(248,113,113,.35);color:var(--red);background:rgba(248,113,113,.08)}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:12px}
+.bar-row .lbl{width:130px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:8px;background:var(--panel2);border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--violet),var(--cyan));transition:width .6s ease}
+.bar-pct{width:38px;text-align:right;font-family:'JetBrains Mono';font-size:11px;color:var(--muted)}
+.empty{color:var(--dim);font-size:13px;padding:8px 0}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;font-weight:600;padding:10px 18px;border-radius:10px;transition:.15s}
+.btn:hover{filter:brightness(1.12)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+.btn.sm{padding:7px 13px;font-size:13px}
+.ring-wrap{display:flex;align-items:center;gap:16px}
+.ring{transform:rotate(-90deg)}
+.ring .track{stroke:var(--panel2)}
+.ring .prog{stroke:var(--amber);stroke-linecap:round;transition:stroke-dashoffset .7s ease}
+
+/* chat */
+.chat-shell{display:flex;flex-direction:column;height:calc(100vh - 0px);max-width:900px;margin:0 auto;padding:26px 24px 20px}
+.chat-scroll{flex:1;overflow-y:auto;padding-right:6px}
+.msg{display:flex;gap:12px;margin-bottom:20px;animation:rise .25s ease}
+.avatar{width:32px;height:32px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px}
+.msg.user .avatar{background:var(--panel2);border:1px solid var(--line)}
+.msg .body{flex:1;min-width:0}
+.agent-tag{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono';font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.agent-tag .dot{width:7px;height:7px;border-radius:50%}
+.bubble{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 15px;font-size:14.5px;white-space:pre-wrap;word-wrap:break-word}
+.msg.user .bubble{background:var(--violet-soft);border-color:rgba(139,124,246,.3)}
+.route-strip{display:flex;align-items:center;gap:9px;font-family:'JetBrains Mono';font-size:11px;color:var(--muted);background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:8px 13px;margin:0 0 18px 44px;width:fit-content}
+.route-strip .pulse{width:8px;height:8px;border-radius:50%;background:var(--violet);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.3;transform:scale(.7)}}
+.route-strip .arrow{color:var(--dim)}
+.route-strip b{color:var(--text);font-weight:500}
+.composer{display:flex;gap:10px;margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px}
+.composer textarea{border:none;background:none;resize:none;height:44px;padding:8px 6px}
+.composer .btn{align-self:flex-end}
+.suggest-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.suggest{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:6px 12px;transition:.15s}
+.suggest:hover{color:var(--text);border-color:var(--violet)}
+
+/* quiz */
+.q-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:14px}
+.q-card .q{font-weight:600;margin-bottom:12px}
+.opt{display:block;width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 14px;margin-bottom:8px;font-size:14px;transition:.15s}
+.opt:hover{border-color:var(--violet)}
+.opt.sel{border-color:var(--violet);background:var(--violet-soft)}
+.opt.correct{border-color:var(--green);background:rgba(74,222,156,.1)}
+.opt.wrong{border-color:var(--red);background:rgba(248,113,113,.08)}
+.explain{font-size:13px;color:var(--muted);border-left:2px solid var(--violet);padding:4px 0 4px 12px;margin-top:10px}
+.score-banner{text-align:center;padding:30px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:16px}
+.score-banner .big{font-family:'Space Grotesk';font-size:44px;font-weight:700;background:linear-gradient(90deg,var(--violet),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* planner */
+.day-block{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
+.day-block .dh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.day-num{font-family:'JetBrains Mono';font-size:11px;color:var(--amber);background:var(--amber-soft);border-radius:7px;padding:3px 9px}
+.task{display:flex;align-items:flex-start;gap:10px;padding:6px 0;font-size:14px;color:var(--muted);cursor:pointer}
+.task input{width:16px;height:16px;margin-top:2px;accent-color:var(--violet);flex-shrink:0}
+.task.done span{text-decoration:line-through;color:var(--dim)}
+
+/* notes */
+.note-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.note-card h4{font-size:14px;margin-bottom:6px}
+.note-card p{font-size:13px;color:var(--muted);white-space:pre-wrap}
+.note-card .del{float:right;color:var(--dim);font-size:12px}
+.note-card .del:hover{color:var(--red)}
+
+/* modal / onboarding */
+.overlay{position:fixed;inset:0;background:rgba(5,7,12,.8);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:50}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:30px;width:400px;max-width:92vw}
+.modal h2{font-size:21px;margin:14px 0 4px}
+.modal p{color:var(--muted);font-size:13.5px;margin-bottom:18px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500}
+.spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--green);border-radius:10px;padding:12px 16px;font-size:13px;z-index:60;animation:rise .25s ease}
+.toast.err{border-left-color:var(--red)}
+.err-text{color:var(--red);font-size:13px;margin-top:8px}
+
+@media(max-width:840px){
+  .sidebar{width:64px}.sidebar .lbl-t,.logo b,.logo span,.side-foot .txt{display:none}
+  .logo{justify-content:center;padding-left:0}.nav-btn{justify-content:center;padding:12px 0}
+  .g4{grid-template-columns:repeat(2,1fr)}.g2,.g3{grid-template-columns:1fr}
+  .view{padding:20px 14px 50px}.route-strip{margin-left:0}
+  .streak-pill{justify-content:center;padding:8px 4px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-orb"></div><div><b>StudySphere</b><span>Agentic AI</span></div></div>
+    <button class="nav-btn active" data-view="dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span class="lbl-t">Dashboard</span></button>
+    <button class="nav-btn" data-view="chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/></svg><span class="lbl-t">Agent Chat</span></button>
+    <button class="nav-btn" data-view="quiz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.8.3-.9 1-.9 1.7"/><circle cx="12" cy="16.5" r=".5" fill="currentColor"/></svg><span class="lbl-t">Quizzes</span></button>
+    <button class="nav-btn" data-view="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg><span class="lbl-t">Study Plan</span></button>
+    <button class="nav-btn" data-view="notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span class="lbl-t">Notes</span></button>
+    <div class="side-foot">
+      <div class="streak-pill">🔥 <span class="txt">Streak</span> <b id="streakSide">0</b></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dash">
+      <div class="eyebrow">Command Center</div>
+      <h1 class="page-h" id="greeting">Welcome</h1>
+      <p class="page-sub" id="greetSub">Your agents are standing by.</p>
+      <div class="grid g4" style="margin-bottom:14px">
+        <div class="card"><div class="stat-label">🔥 Day streak</div><div class="stat-num" id="statStreak">0</div></div>
+        <div class="card"><div class="stat-label">⚡ XP earned</div><div class="stat-num" id="statXP">0</div></div>
+        <div class="card"><div class="stat-label">🎯 Quiz average</div><div class="stat-num" id="statAvg">—</div></div>
+        <div class="card"><div class="stat-label">📝 Quizzes taken</div><div class="stat-num" id="statQuizzes">0</div></div>
+      </div>
+      <div class="grid g2" style="margin-bottom:14px">
+        <div class="card">
+          <h3>Recent quiz scores</h3>
+          <div id="quizBars"><div class="empty">No quizzes yet — the Quiz Agent is ready when you are.</div></div>
+        </div>
+        <div class="card">
+          <h3>Study plan progress</h3>
+          <div id="planRing"><div class="empty">No active plan. Ask the Academic Planner to build one.</div></div>
+        </div>
+      </div>
+      <div class="grid g2">
+        <div class="card">
+          <h3>Weak topics <span class="mono" style="color:var(--dim)">· from quiz misses</span></h3>
+          <div id="weakChips"><div class="empty">Nothing flagged yet. Take a quiz to find gaps.</div></div>
+        </div>
+        <div class="card">
+          <h3>Quick actions</h3>
+          <button class="btn sm" onclick="go('chat')">Ask the agents</button>
+          <button class="btn sm ghost" onclick="go('quiz')" style="margin-left:8px">New quiz</button>
+          <button class="btn sm ghost" onclick="go('plan')" style="margin-left:8px">Build a plan</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHAT -->
+    <section class="view" id="view-chat" style="padding:0;max-width:none">
+      <div class="chat-shell">
+        <div class="chat-scroll" id="chatScroll"></div>
+        <div id="routeStrip" style="display:none" class="route-strip"><span class="pulse"></span><span id="routeText">Router analyzing…</span></div>
+        <div class="composer">
+          <textarea id="chatInput" placeholder="Ask anything — the router picks the right agent…" rows="1"></textarea>
+          <button class="btn" id="sendBtn" onclick="sendChat()">Send</button>
+        </div>
+        <div class="suggest-row">
+          <button class="suggest" onclick="quickAsk('Explain normalization in DBMS with a real-world analogy')">Explain normalization</button>
+          <button class="suggest" onclick="quickAsk('Debug this: my Python for loop prints the same value every time when creating lambdas')">Debug my code</button>
+          <button class="suggest" onclick="quickAsk('What projects should a final-year CS student build for an ML internship?')">Career advice</button>
+          <button class="suggest" onclick="quickAsk('I keep procrastinating. Help me plan a focused 2-hour study session.')">Beat procrastination</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section class="view" id="view-quiz">
+      <div class="eyebrow">Quiz Agent</div>
+      <h1 class="page-h">Adaptive quizzes</h1>
+      <p class="page-sub">Generated live. Misses feed your weak-topic profile, which every other agent can see.</p>
+      <div class="card" style="margin-bottom:18px">
+        <div class="grid g3">
+          <div class="field"><label>Topic</label><input id="quizTopic" placeholder="e.g. SQL joins, Binary trees"></div>
+          <div class="field"><label>Difficulty</label><select id="quizDiff"><option>Easy</option><option selected>Medium</option><option>Hard</option></select></div>
+          <div class="field"><label>Questions</label><select id="quizCount"><option>3</option><option selected>5</option></select></div>
+        </div>
+        <button class="btn" id="quizGenBtn" onclick="genQuiz()">Generate quiz</button>
+        <div class="err-text" id="quizErr"></div>
+      </div>
+      <div id="quizArea"></div>
+    </section>
+
+    <!-- PLAN -->
+    <section class="view" id="view-plan">
+      <div class="eyebrow">Academic Planner</div>
+      <h1 class="page-h">Study roadmap</h1>
+      <p class="page-sub">The Planner decomposes your subject into a day-by-day schedule. Checkboxes persist to your database.</p>
+      <div class="card" style="margin-bottom:18px">
+        <div class="grid g3">
+          <div class="field"><label>Subject / exam</label><input id="planSubject" placeholder="e.g. Operating Systems finals"></div>
+          <div class="field"><label>Days available</label><input id="planDays" type="number" value="7" min="2" max="21"></div>
+          <div class="field"><label>Hours per day</label><input id="planHours" type="number" value="2" min="1" max="10"></div>
+        </div>
+        <button class="btn" id="planGenBtn" onclick="genPlan()">Build my roadmap</button>
+        <div class="err-text" id="planErr"></div>
+      </div>
+      <div id="planArea"></div>
+    </section>
+
+    <!-- NOTES -->
+    <section class="view" id="view-notes">
+      <div class="eyebrow">Notebook</div>
+      <h1 class="page-h">Notes</h1>
+      <p class="page-sub">Saved to your database. Tip: in chat, tap "Save as note" under any agent answer.</p>
+      <div class="card" style="margin-bottom:18px">
+        <div class="field"><label>Title</label><input id="noteTitle" placeholder="e.g. ACID properties summary"></div>
+        <div class="field"><label>Body</label><textarea id="noteBody" rows="4" placeholder="Write or paste anything…"></textarea></div>
+        <button class="btn sm" onclick="addNote()">Save note</button>
+      </div>
+      <div id="notesArea"></div>
+    </section>
+  </main>
+</div>
+
+<!-- auth -->
+<div class="overlay" id="authOverlay" style="display:none">
+  <div class="modal">
+    <div class="logo-orb" style="width:42px;height:42px;border-radius:13px"></div>
+    <h2 id="authTitle">Welcome to StudySphere</h2>
+    <p>Eight AI agents — tutor, planner, examiner, coding mentor and more — here for you 24×7. Your progress is saved to your account.</p>
+    <div id="regFields">
+      <div class="field"><label>Your name</label><input id="aName" placeholder="Aarav"></div>
+      <div class="field"><label>Class / grade</label><input id="aGrade" placeholder="e.g. Class 10, B.Tech 3rd year"></div>
+      <div class="field"><label>Goal</label><input id="aGoal" placeholder="e.g. Board exams, JEE, internship"></div>
+    </div>
+    <div class="field"><label>Email</label><input id="aEmail" type="email" placeholder="you@school.com"></div>
+    <div class="field"><label>Password</label><input id="aPass" type="password" placeholder="min 6 characters"></div>
+    <button class="btn" style="width:100%;justify-content:center" id="authBtn" onclick="doAuth()">Create account</button>
+    <div class="err-text" id="authErr"></div>
+    <p style="margin-top:14px;text-align:center"><button class="suggest" onclick="toggleAuthMode()" id="authToggle">Already have an account? Log in</button></p>
+  </div>
+</div>
+
+<script>
+/* ================= API LAYER (talks to the FastAPI backend) ================= */
+// If this page is served by the FastAPI backend, use relative /api.
+// If opened via Live Server / file://, talk to the backend on :8000.
+const API_BASE = (location.port === '8000') ? '/api' : 'http://localhost:8000/api';
+let TOKEN = localStorage.getItem('ss_token') || null;
+
+async function api(path, method='GET', body=null){
+  const res = await fetch(API_BASE + path, {
+    method,
+    headers: { 'Content-Type':'application/json', ...(TOKEN? {'Authorization':'Bearer '+TOKEN}:{}) },
+    body: body? JSON.stringify(body) : null
+  });
+  if(res.status === 401 && !path.startsWith('/auth')){ logout(); throw new Error('Session expired'); }
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.detail || ('Error '+res.status));
+  return data;
+}
+function logout(){ TOKEN=null; localStorage.removeItem('ss_token'); document.getElementById('authOverlay').style.display='flex'; }
+
+/* ================= AUTH ================= */
+let authMode = 'register';
+function toggleAuthMode(){
+  authMode = authMode==='register' ? 'login' : 'register';
+  document.getElementById('regFields').style.display = authMode==='register'?'block':'none';
+  document.getElementById('authTitle').textContent = authMode==='register'?'Welcome to StudySphere':'Welcome back';
+  document.getElementById('authBtn').textContent = authMode==='register'?'Create account':'Log in';
+  document.getElementById('authToggle').textContent = authMode==='register'?'Already have an account? Log in':'New here? Create an account';
+  document.getElementById('authErr').textContent='';
+}
+async function doAuth(){
+  const err = document.getElementById('authErr'); err.textContent='';
+  const email = document.getElementById('aEmail').value.trim();
+  const password = document.getElementById('aPass').value;
+  if(!email || !password){ err.textContent='Email and password are required.'; return; }
+  const btn = document.getElementById('authBtn'); btn.disabled=true;
+  try{
+    let data;
+    if(authMode==='register'){
+      data = await api('/auth/register','POST',{
+        name: document.getElementById('aName').value.trim()||'Student',
+        grade: document.getElementById('aGrade').value.trim(),
+        goal: document.getElementById('aGoal').value.trim(),
+        email, password
+      });
+    } else {
+      data = await api('/auth/login','POST',{email, password});
+    }
+    TOKEN = data.token; localStorage.setItem('ss_token', TOKEN);
+    document.getElementById('authOverlay').style.display='none';
+    await loadAll();
+    toast('Welcome to StudySphere!');
+  }catch(e){ err.textContent = e.message; }
+  btn.disabled=false;
+}
+
+/* ================= STATE + BOOT ================= */
+let ME = null, PLAN = null, NOTES = [], CHATS = [];
+
+async function boot(){
+  if(!TOKEN){ document.getElementById('authOverlay').style.display='flex'; return; }
+  try{ await loadAll(); }
+  catch(e){ /* handled by logout on 401 */ }
+}
+async function loadAll(){
+  ME = await api('/me');
+  PLAN = ME.plan;
+  renderDash();
+  const h = await api('/chat/history'); CHATS = h.messages; renderChatHistory();
+  const n = await api('/notes'); NOTES = n.notes; renderNotes();
+  renderPlan();
+}
+
+function toast(msg, err){
+  const t = document.createElement('div'); t.className='toast'+(err?' err':''); t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 3500);
+}
+function esc(s){ const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
+
+/* ================= NAV ================= */
+document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));
+function go(v){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active', x.id==='view-'+v));
+  if(v==='chat') scrollChat();
+}
+
+/* ================= DASHBOARD ================= */
+async function refreshDash(){ try{ ME = await api('/me'); PLAN = ME.plan; renderDash(); }catch(e){} }
+function renderDash(){
+  if(!ME) return;
+  const st = ME.stats;
+  document.getElementById('streakSide').textContent = st.streak;
+  document.getElementById('statStreak').textContent = st.streak;
+  document.getElementById('statXP').textContent = st.xp;
+  document.getElementById('statQuizzes').textContent = st.quizzes_taken;
+  document.getElementById('statAvg').innerHTML = st.quiz_avg===null ? '—' : st.quiz_avg + '<small>%</small>';
+  const h = new Date().getHours();
+  const part = h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  document.getElementById('greeting').textContent = part + ', ' + ME.profile.name;
+  document.getElementById('greetSub').textContent = (ME.profile.grade? ME.profile.grade+' · ':'') + 'Goal: ' + (ME.profile.goal||'learning');
+  const qb = document.getElementById('quizBars');
+  if(ME.recent_quizzes.length){
+    qb.innerHTML = ME.recent_quizzes.slice(0,6).map(q=>{
+      const pct = Math.round(q.score/q.total*100);
+      return `<div class="bar-row"><div class="lbl">${esc(q.topic)}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><div class="bar-pct">${pct}%</div></div>`;
+    }).join('');
+  } else qb.innerHTML = '<div class="empty">No quizzes yet — the Quiz Agent is ready when you are.</div>';
+  const wc = document.getElementById('weakChips');
+  wc.innerHTML = ME.weak_topics.length
+    ? ME.weak_topics.map(w=>`<span class="chip weak">${esc(w.topic)} ×${w.misses}</span>`).join('')
+    : '<div class="empty">Nothing flagged yet. Take a quiz to find gaps.</div>';
+  const pr = document.getElementById('planRing');
+  if(PLAN){
+    const all = PLAN.items.flatMap(d=>d.tasks), done = all.filter(t=>t.done).length;
+    const pct = all.length? Math.round(done/all.length*100):0;
+    const C = 2*Math.PI*34;
+    pr.innerHTML = `<div class="ring-wrap">
+      <svg class="ring" width="84" height="84"><circle class="track" cx="42" cy="42" r="34" fill="none" stroke-width="8"/><circle class="prog" cx="42" cy="42" r="34" fill="none" stroke-width="8" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-pct/100)}"/></svg>
+      <div><div class="stat-num" style="font-size:24px">${pct}%</div><div class="stat-label">${esc(PLAN.subject)}<br>${done}/${all.length} tasks done</div></div></div>`;
+  } else pr.innerHTML = '<div class="empty">No active plan. Ask the Academic Planner to build one.</div>';
+}
+
+/* ================= CHAT ================= */
+function renderChatHistory(){
+  const el = document.getElementById('chatScroll');
+  if(!CHATS.length){
+    el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--muted)">
+      <div class="logo-orb" style="width:52px;height:52px;border-radius:16px;margin:0 auto 18px"></div>
+      <h2 class="display" style="color:var(--text);font-size:22px;margin-bottom:8px">Eight agents. One question away.</h2>
+      <p style="font-size:13.5px;max-width:420px;margin:0 auto">Every message goes to the backend router, which hands it to a specialist agent running on Groq. Watch the routing strip work.</p></div>`;
+    return;
+  }
+  el.innerHTML = CHATS.map(m=> m.role==='user'
+    ? `<div class="msg user"><div class="avatar">🧑‍🎓</div><div class="body"><div class="bubble">${esc(m.content)}</div></div></div>`
+    : `<div class="msg"><div class="avatar" style="background:${m.color||'#8B7CF6'}22;border:1px solid ${m.color||'#8B7CF6'}55">${m.icon||'🎓'}</div><div class="body"><div class="agent-tag"><span class="dot" style="background:${m.color||'#8B7CF6'}"></span>${esc(m.agent_name||'Agent')}</div><div class="bubble">${esc(m.content)}</div><button class="suggest" style="margin-top:7px" onclick="saveMsgAsNote(this)" data-agent="${esc(m.agent_name||'Agent')}" data-body="${esc(m.content)}">Save as note</button></div></div>`
+  ).join('');
+  scrollChat();
+}
+function scrollChat(){ const el=document.getElementById('chatScroll'); el.scrollTop = el.scrollHeight; }
+function quickAsk(t){ document.getElementById('chatInput').value = t; sendChat(); }
+document.getElementById('chatInput').addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); } });
+
+async function sendChat(){
+  const inp = document.getElementById('chatInput'), btn = document.getElementById('sendBtn');
+  const msg = inp.value.trim(); if(!msg || btn.disabled) return;
+  inp.value=''; btn.disabled = true;
+  CHATS.push({role:'user', content:msg}); renderChatHistory();
+  const strip = document.getElementById('routeStrip'), rt = document.getElementById('routeText');
+  strip.style.display='flex'; rt.innerHTML = 'Router <span class="arrow">→</span> classifying intent…';
+  try{
+    const data = await api('/chat','POST',{message:msg});
+    rt.innerHTML = `Router <span class="arrow">→</span> <b>${esc(data.agent_name)}</b> ${data.icon}`;
+    CHATS.push({role:'assistant', content:data.reply, agent_name:data.agent_name, icon:data.icon, color:data.color});
+  }catch(e){
+    CHATS.push({role:'assistant', content:'⚠ ' + e.message, agent_name:'System', icon:'⚙️', color:'#F87171'});
+  }
+  setTimeout(()=>{ strip.style.display='none'; }, 600);
+  btn.disabled=false;
+  renderChatHistory(); refreshDash();
+}
+async function saveMsgAsNote(btn){
+  try{
+    const data = await api('/notes','POST',{title: btn.dataset.agent + ' answer', body: btn.dataset.body});
+    NOTES.unshift(data.note); renderNotes(); toast('Saved to Notes');
+  }catch(e){ toast(e.message, true); }
+}
+
+/* ================= QUIZ ================= */
+let activeQuiz = null;
+async function genQuiz(){
+  const topic = document.getElementById('quizTopic').value.trim();
+  const err = document.getElementById('quizErr'); err.textContent='';
+  if(!topic){ err.textContent='Enter a topic first.'; return; }
+  const btn = document.getElementById('quizGenBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Quiz Agent working…';
+  try{
+    const data = await api('/quiz/generate','POST',{
+      topic, difficulty: document.getElementById('quizDiff').value,
+      count: +document.getElementById('quizCount').value
+    });
+    activeQuiz = { topic, questions:data.questions, picked:new Array(data.questions.length).fill(null), submitted:false };
+    renderQuiz();
+  }catch(e){ err.textContent = e.message; }
+  btn.disabled=false; btn.textContent='Generate quiz';
+}
+function renderQuiz(){
+  const area = document.getElementById('quizArea');
+  if(!activeQuiz){ area.innerHTML=''; return; }
+  const Q = activeQuiz;
+  let html = '';
+  if(Q.submitted){
+    const score = Q.questions.reduce((a,q,i)=>a+(Q.picked[i]===q.answer?1:0),0);
+    html += `<div class="score-banner"><div class="mono" style="color:var(--muted)">RESULT · ${esc(Q.topic)}</div><div class="big">${score}/${Q.questions.length}</div><div style="color:var(--muted);font-size:13px">+${score*10} XP · misses added to your weak-topic profile</div></div>`;
+  }
+  html += Q.questions.map((q,i)=>{
+    const opts = q.options.map((o,j)=>{
+      let cls='opt';
+      if(Q.submitted){ if(j===q.answer) cls+=' correct'; else if(Q.picked[i]===j) cls+=' wrong'; }
+      else if(Q.picked[i]===j) cls+=' sel';
+      return `<button class="${cls}" onclick="pickOpt(${i},${j})">${esc(o)}</button>`;
+    }).join('');
+    const ex = Q.submitted ? `<div class="explain">${esc(q.explanation||'')}</div>` : '';
+    return `<div class="q-card"><div class="mono" style="color:var(--dim);margin-bottom:6px">Q${i+1} · ${esc(q.topic||Q.topic)}</div><div class="q">${esc(q.q)}</div>${opts}${ex}</div>`;
+  }).join('');
+  html += !Q.submitted ? `<button class="btn" onclick="submitQuiz()">Submit answers</button>`
+                       : `<button class="btn ghost" onclick="activeQuiz=null;renderQuiz()">New quiz</button>`;
+  area.innerHTML = html;
+}
+function pickOpt(i,j){ if(activeQuiz.submitted) return; activeQuiz.picked[i]=j; renderQuiz(); }
+async function submitQuiz(){
+  const Q = activeQuiz;
+  if(Q.picked.some(p=>p===null)){ toast('Answer every question first', true); return; }
+  Q.submitted = true;
+  let score = 0; const missed = [];
+  Q.questions.forEach((q,i)=>{
+    if(Q.picked[i]===q.answer) score++;
+    else missed.push(q.topic||Q.topic);
+  });
+  try{ await api('/quiz/submit','POST',{topic:Q.topic, score, total:Q.questions.length, missed_topics:missed}); }
+  catch(e){ toast(e.message, true); }
+  renderQuiz(); refreshDash();
+}
+
+/* ================= PLANNER ================= */
+async function genPlan(){
+  const subject = document.getElementById('planSubject').value.trim();
+  const err = document.getElementById('planErr'); err.textContent='';
+  if(!subject){ err.textContent='Enter a subject first.'; return; }
+  const btn = document.getElementById('planGenBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Planner decomposing…';
+  try{
+    const data = await api('/plan/generate','POST',{
+      subject, days: +document.getElementById('planDays').value||7,
+      hours: +document.getElementById('planHours').value||2
+    });
+    PLAN = data.plan; renderPlan(); refreshDash(); toast('Roadmap saved to your account');
+  }catch(e){ err.textContent = e.message; }
+  btn.disabled=false; btn.textContent='Build my roadmap';
+}
+function renderPlan(){
+  const area = document.getElementById('planArea');
+  if(!PLAN){ area.innerHTML=''; return; }
+  area.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3 class="display" style="font-size:17px">${esc(PLAN.subject)}</h3>
+      <button class="suggest" onclick="clearPlan()">Delete plan</button></div>` +
+    PLAN.items.map(d=>`<div class="day-block">
+      <div class="dh"><span class="day-num">DAY ${d.day}</span><b style="font-size:14px">${esc(d.topic)}</b></div>
+      ${d.tasks.map(t=>`<label class="task ${t.done?'done':''}"><input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})"><span>${esc(t.text)}</span></label>`).join('')}
+    </div>`).join('');
+}
+async function toggleTask(id){
+  try{
+    const r = await api('/plan/task/'+id+'/toggle','POST');
+    PLAN.items.forEach(d=>d.tasks.forEach(t=>{ if(t.id===id) t.done = r.done; }));
+    renderPlan(); refreshDash();
+  }catch(e){ toast(e.message, true); }
+}
+async function clearPlan(){
+  try{ await api('/plan','DELETE'); PLAN=null; renderPlan(); refreshDash(); }catch(e){ toast(e.message,true); }
+}
+
+/* ================= NOTES ================= */
+async function addNote(){
+  const t = document.getElementById('noteTitle').value.trim();
+  const b = document.getElementById('noteBody').value.trim();
+  if(!t && !b){ toast('Write something first', true); return; }
+  try{
+    const data = await api('/notes','POST',{title:t||'Untitled', body:b});
+    NOTES.unshift(data.note);
+    document.getElementById('noteTitle').value=''; document.getElementById('noteBody').value='';
+    renderNotes(); toast('Note saved');
+  }catch(e){ toast(e.message, true); }
+}
+async function delNote(id){
+  try{ await api('/notes/'+id,'DELETE'); NOTES = NOTES.filter(n=>n.id!==id); renderNotes(); }
+  catch(e){ toast(e.message, true); }
+}
+function renderNotes(){
+  const area = document.getElementById('notesArea');
+  area.innerHTML = NOTES.length
+    ? NOTES.map(n=>`<div class="note-card"><button class="del" onclick="delNote(${n.id})">delete</button><h4>${esc(n.title)} <span class="mono" style="color:var(--dim)">· ${n.ts}</span></h4><p>${esc(n.body)}</p></div>`).join('')
+    : '<div class="empty">No notes yet.</div>';
+}
+
+boot();
+</script>
+</body>
+</html>
